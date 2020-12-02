@@ -8,9 +8,6 @@ endif ()
 target_link_libraries(vast libvast)
 install(TARGETS vast DESTINATION bin)
 
-# FIXME: hackathon yolo mode
-target_link_libraries(vast example)
-
 # man pages
 if (PANDOC_FOUND)
   set(man_page vast.1)

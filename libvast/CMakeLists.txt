@@ -133,6 +133,7 @@ set(libvast_sources
     src/path.cpp
     src/pattern.cpp
     src/port.cpp
+    src/plugin.cpp
     src/qualified_record_field.cpp
     src/schema.cpp
     src/segment.cpp
