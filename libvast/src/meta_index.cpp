@@ -29,6 +29,8 @@
 #include <caf/binary_deserializer.hpp>
 #include <caf/binary_serializer.hpp>
 
+#include <type_traits>
+
 namespace vast {
 
 void partition_synopsis::shrink() {
@@ -50,29 +52,34 @@ void partition_synopsis::add(const table_slice& slice,
              : factory<synopsis>::make(field.type, synopsis_options);
   };
   for (size_t col = 0; col < slice.columns(); ++col) {
-    auto add_row = [&](const synopsis_ptr& syn) {
+    auto add_column = [&](const synopsis_ptr& syn) {
       for (size_t row = 0; row < slice.rows(); ++row) {
         auto view = slice.at(row, col);
         if (!caf::holds_alternative<caf::none_t>(view))
           syn->add(std::move(view));
       }
     };
-    // Locate the relevant synopsis.
     auto&& layout = slice.layout();
     auto& field = layout.fields[col];
-    auto key = qualified_record_field{layout.name(), field};
-    auto it = field_synopses_.find(key);
-    if (it == field_synopses_.end())
-      // Attempt to create a synopsis if we have never seen this key before.
-      it = field_synopses_.emplace(std::move(key), make_synopsis(field)).first;
-    // If there exists a synopsis for a field, add the entire column.
-    if (auto& syn = it->second)
-      add_row(syn);
-    auto tt = type_synopses_.find(field.type);
-    if (tt == type_synopses_.end())
-      tt = type_synopses_.emplace(field.type, make_synopsis(field)).first;
-    if (auto& syn = tt->second)
-      add_row(syn);
+    auto& type = field.type;
+    if (!caf::holds_alternative<string_type>(type)) {
+      // Locate the relevant synopsis.
+      auto key = qualified_record_field{layout.name(), field};
+      auto it = field_synopses_.find(key);
+      if (it == field_synopses_.end()) {
+        // Attempt to create a synopsis if we have never seen this key before.
+        it = field_synopses_.emplace(std::move(key), make_synopsis(field)).first;
+      }
+      // If there exists a synopsis for a field, add the entire column.
+      if (auto& syn = it->second)
+        add_column(syn);
+    } else { // type == string
+      auto tt = type_synopses_.find(field.type);
+      if (tt == type_synopses_.end())
+        tt = type_synopses_.emplace(field.type, make_synopsis(field)).first;
+      if (auto& syn = tt->second)
+        add_column(syn);
+    }
   }
 }
 
@@ -194,7 +201,19 @@ std::vector<uuid> meta_index::lookup(const expression& expr) const {
               }
             }
           }
+          for (auto& [type, syn] : part_syn.type_synopses_) {
+            if (caf::visit([](auto x) {
+              if constexpr(std::is_same_v<decltype(type), decltype(x)>) {
+                return true;
+              } else {
+                return false;
+              }
+            }, data)) {
+
+            }
+          }
         }
+
         // Re-establish potentially violated invariant.
         std::sort(result.begin(), result.end());
         return found_matching_synopsis ? result : all_partitions();
