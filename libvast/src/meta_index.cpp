@@ -202,18 +202,22 @@ std::vector<uuid> meta_index::lookup(const expression& expr) const {
             }
           }
           for (auto& [type, syn] : part_syn.type_synopses_) {
-            if (caf::visit([](auto x) {
-              if constexpr(std::is_same_v<decltype(type), decltype(x)>) {
-                return true;
-              } else {
-                return false;
-              }
-            }, data)) {
-
+            if (syn) {
+              caf::visit(
+                [&](auto value, auto field_type) {
+                  if (data_to_type<decltype(value)>{} == field_type) {
+                    found_matching_synopsis = true;
+                    auto opt = syn->lookup(x.op, make_view(rhs));
+                    if (!opt || *opt) {
+                      VAST_DEBUG(this, "selects", part_id, "at predicate", x);
+                      result.push_back(part_id);
+                    }
+                  }
+                },
+                rhs, type);
             }
           }
         }
-
         // Re-establish potentially violated invariant.
         std::sort(result.begin(), result.end());
         return found_matching_synopsis ? result : all_partitions();
