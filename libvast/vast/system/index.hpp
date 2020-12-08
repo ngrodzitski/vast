@@ -245,10 +245,13 @@ pack(flatbuffers::FlatBufferBuilder& builder, const index_state& x);
 /// to partitions.
 /// @param dir The directory of the index.
 /// @param partition_capacity The maximum number of events per partition.
+/// @param taste_partitions How many lookup partitions to schedule immediately.
+/// @param num_workers The maximum amount of concurrent lookups.
+/// @param meta_index_fprate The false positive rate for the meta index.
 /// @pre `partition_capacity > 0
 caf::behavior
 index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
       size_t partition_capacity, size_t in_mem_partitions,
-      size_t taste_partitions, size_t num_workers);
+      size_t taste_partitions, size_t num_workers, double meta_index_fprate);
 
 } // namespace vast::system

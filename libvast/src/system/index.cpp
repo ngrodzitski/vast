@@ -444,7 +444,7 @@ void index_state::flush_to_disk() {
 caf::behavior
 index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
       size_t partition_capacity, size_t max_inmem_partitions,
-      size_t taste_partitions, size_t num_workers) {
+      size_t taste_partitions, size_t num_workers, double meta_index_fprate) {
   VAST_TRACE(VAST_ARG(fs), VAST_ARG(dir), VAST_ARG(partition_capacity),
              VAST_ARG(max_inmem_partitions), VAST_ARG(taste_partitions),
              VAST_ARG(num_workers));
@@ -466,8 +466,10 @@ index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
     return {};
   }
   // This option must be kept in sync with vast/address_synopsis.hpp.
-  put(self->state.meta_idx.factory_options(), "max-partition-size",
-      partition_capacity);
+  auto& meta_index_options = self->state.meta_idx.factory_options();
+  put(meta_index_options, "max-partition-size", partition_capacity);
+  put(meta_index_options, "address-synopsis-fprate", meta_index_fprate);
+  put(meta_index_options, "string-synopsis-fprate", meta_index_fprate);
   // Creates a new active partition and updates index state.
   auto create_active_partition = [=] {
     auto id = uuid::random();
