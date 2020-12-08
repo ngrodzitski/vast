@@ -542,7 +542,7 @@ index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
       } else {
         VAST_ASSERT(active.capacity >= x.rows());
         active.capacity -= x.rows();
-        VAST_DEBUG(self, "reduces active partition capacity to",
+        VAST_TRACE(self, "reduced active partition capacity to",
                    (std::to_string(active.capacity) + '/'
                     + std::to_string(self->state.partition_capacity)),
                    "rows");
