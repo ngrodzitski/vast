@@ -330,10 +330,14 @@ unpack(const fbs::partition_synopsis::v0& x, partition_synopsis& ps) {
     synopsis_ptr ptr;
     if (auto error = unpack(*synopsis, ptr))
       return error;
-    if (!qf.field_name.empty())
+    if (!qf.field_name.empty()) {
+      VAST_WARNING_ANON("unpacked field syn", qf.field_name);
       ps.field_synopses_[qf] = std::move(ptr);
-    else
+    }
+    else {
+      VAST_WARNING_ANON("unpacked type syn", qf.field_name);
       ps.type_synopses_[qf.type] = std::move(ptr);
+    }
 
   }
   return caf::none;
