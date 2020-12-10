@@ -667,13 +667,8 @@ index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
     },
     [=](const uuid& query_id, uint32_t num_partitions) {
       auto& st = self->state;
-      auto mid = self->current_message_id();
       auto sender = self->current_sender();
       auto client = caf::actor_cast<caf::actor>(sender);
-      auto respond = [=](auto&&... xs) {
-        unsafe_response(self, sender, {}, mid.response_id(),
-                        std::forward<decltype(xs)>(xs)...);
-      };
       // Sanity checks.
       if (!sender) {
         VAST_ERROR(self, "ignores an anonymous query");
@@ -701,27 +696,28 @@ index(caf::stateful_actor<index_state>* self, filesystem_type fs, path dir,
         self, iter->second.expression, actors,
         [=](caf::expected<pending_query_map> maybe_pqm) {
           auto& st = self->state;
+          auto drop = [&] {
+            self->state.idle_workers.emplace_back(std::move(worker));
+            self->send(client, atom::done_v);
+          };
           auto iter = st.pending.find(query_id);
           if (iter == st.pending.end()) {
             VAST_WARNING(self, "ignores continuation for unknown query id",
                          query_id);
-            self->send(client, atom::done_v);
-            return;
+            return drop();
           }
           auto& query_state = iter->second;
           if (!maybe_pqm) {
             VAST_ERROR(self, "failed to collect pending query map:",
                        render(maybe_pqm.error()));
-            self->send(client, atom::done_v);
-            return;
+            return drop();
           }
           auto& pqm = *maybe_pqm;
           if (pqm.empty()) {
             VAST_DEBUG(self, "returns without result: no partitions qualify");
             if (query_state.partitions.empty())
               st.pending.erase(iter);
-            self->send(client, atom::done_v);
-            return;
+            return drop();
           }
           auto qm = st.launch_evaluators(pqm, query_state.expression);
           // Delegate to query supervisor (uses up this worker) and report
