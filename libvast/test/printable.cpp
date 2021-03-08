@@ -26,7 +26,6 @@
 #include "vast/concept/printable/vast/data.hpp"
 #include "vast/concept/printable/vast/view.hpp"
 #include "vast/detail/escapers.hpp"
-
 #include "vast/fmt_integration.hpp"
 
 #include <caf/optional.hpp>

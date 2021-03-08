@@ -113,7 +113,8 @@ struct record_view_printer : printer<record_view_printer> {
   }
 };
 
-// // -- printer registry setup ---------------------------------------------------
+// // -- printer registry setup
+// ---------------------------------------------------
 
 // template <>
 // struct printer_registry<view<data>> {
